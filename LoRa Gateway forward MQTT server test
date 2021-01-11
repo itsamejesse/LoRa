@@ -1,0 +1,65 @@
+#include <SPI.h> //just libraries
+#include <LoRa.h>
+
+char *node_id = "<5678>";             // local channel id
+uint8_t datasend[36];                 //
+char sensordatachar[8]={"4.46"};      //test variable
+char sensordatachar2[8]={"5.75"};     //test variable
+unsigned long new_time,old_time=0;    //timer variable
+unsigned int count = 1;               //timer variable
+
+
+void setup() {
+  Serial.begin(9600);   //serial begin 
+  while(!Serial);
+  Serial.println("starting LoRa radio!"); //radio begin
+  if(!LoRa.begin(868000000))
+  {
+    Serial.println("Starting LoRa failed!");
+    while(1);
+  }
+  LoRa.setSpreadingFactor(7);             //radio settings
+  LoRa.setSignalBandwidth(125000);
+  LoRa.setCodingRate4(5);
+  LoRa.setSyncWord(0x34);
+  Serial.println("LoRa init succeeded");
+
+  
+}
+    
+void makeData(){  //
+  char data[50] = "\0";
+    for(int i = 0; i < 50; i++)
+    {
+       data[i] = node_id[i];
+    }
+
+    
+  strcat(data,"field1=");
+  strcat(data,sensordatachar);
+  strcat(data,"&field2=");
+  strcat(data,sensordatachar2);
+  strcpy((char *)datasend,data);
+  Serial.println((char *)datasend);
+}
+
+void SendData(){
+  LoRa.beginPacket();
+  LoRa.print((char *)datasend);
+  LoRa.endPacket();
+  Serial.println("Packet Sent");
+}
+
+
+void loop() {
+  new_time=millis();
+  if (new_time - old_time >= 60000 || old_time == 0)
+  {
+    old_time = new_time;
+    Serial.print("counting");
+    count++;
+    makeData();
+    SendData();
+    LoRa.receive();
+  }
+}
